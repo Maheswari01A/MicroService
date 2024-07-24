@@ -1,0 +1,62 @@
+
+spring:
+  application:
+    name: issuerms
+
+server:
+  port: 8082
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka 
+      #MRI 2: even if it not given also, it would work because @EnableAutoConfiguration will find the eureka server at default port 8761
+
+#MRI 3: Add properties to Support for circuit breaker visibility
+# By default actuator hides all the endpoints. But need to expose it in order to check the circuit breaker
+# Also needs additional info about the health (like disk usage) 
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+
+#MRI 4: Make the debug level of circuit breaker as debug. Default its info
+logging:
+  level:
+    '[io.github.resilience4j]': debug
+
+#MRI 4: resilience4j settings  
+resilience4j:
+  circuitbreaker:
+    configs:
+      default: #MRI 5: Default settings 
+        slidingWindowSize: 8  
+        permittedNumberOfCallsInHalfOpenState: 2
+        slidingWindowType: COUNT_BASED
+        waitDurationInOpenState: 30
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 4
+    instances:
+      bookmsclient: #MRI 6: usermsclient settings #out of 10 (slidingWindowSize) calls 
+                    #threshold failure is 50% of calls.
+        registerHealthIndicator: true
+        eventConsumerBufferSize: 10
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        #automaticTransferFromOpenToHalfOpenEnabled: true
+        automatic-transition-from-open-to-half-open-enabled: true
+        waitDurationInOpenState: 20s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowSize: 10
+        slidingWindowType: COUNT_BASED
+
+        # Out of 10 (slidingWindowSize) search calls , my failure ratio is 50% (failureRateThreshold)
+        # and waitDurationInOpenState is 20s after which 3 calls (permittedNumberOfCallsInHalfOpenState)
+        # are permitted to make circuit breaker state from half-open to closed state

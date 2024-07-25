@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: apigateway
+
+  cloud:
+    gateway:
+      routes:
+        - id: studentms
+          uri: lb://STUDENTMS
+          predicates:
+            - Path=/dummy-studentms/**
+          filters:
+            - RewritePath=/dummy-studentms/(?<path>.*), /$\{path}
+        - id: feesms
+          uri: lb://FEESMS
+          predicates:
+            - Path=/dummy-feesms/**
+          filters:
+            - RewritePath=/dummy-feesms/(?<path>.*), /$\{path}
+
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
